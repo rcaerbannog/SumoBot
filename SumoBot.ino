@@ -19,8 +19,15 @@ int ldr2_state=0;
 void setup() {
   lcd.begin(16,2);
   
+  pinMode(on_off_pin,INPUT);
+  pinMode(enable1_pin,OUTPUT);
+  pinMode(enable2_pin,OUTPUT);
+  pinMode(enable3_pin,OUTPUT);
+  pinMode(enable4_pin,OUTPUT);
   pinMode(ldr1_pin, INPUT);
   pinMode(ldr2_pin, INPUT);
+  pinMode(dip1_pin,INPUT);
+  pinMode(dip2_pin,INPUT);
   
   //ANTHONY
   
