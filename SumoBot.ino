@@ -21,9 +21,13 @@ void setup() {
   
   pinMode(ldr1_pin, INPUT);
   pinMode(ldr2_pin, INPUT);
+  
+  //ANTHONY
+  
 }
 
 void loop() {
+  //OLD CODE
   ldr1_state=analogRead(ldr1_pin);
   
   lcd.setCursor(12, 0);
@@ -33,5 +37,17 @@ void loop() {
   
   lcd.setCursor(12, 1);
   lcd.print(ldr2_state);
+  
+  
+  //ANTHONY
+  
+  //ALEXANDER
+  
 }
+
+//OLD CODE
+
+//ANTHONY
+
+//ALEXANDER
   
