@@ -20,8 +20,8 @@ int ldr2_state=0;
 int systemMode = 0; //0 for idle, 1 for search, 2 for tracking, 3 for facing, 4 for near edge
 //Motor variables
 int defaultSpeed = 255;
-int motor1Speed = 255;
-int motor2Speed = 255;
+int motor12Speed = 255;
+int motor34Speed = 255;
 //add turn stuff here
 long turnFinishTime = -1; //-1 if not in use, positive time otherwise. In milliseconds.
 
@@ -106,9 +106,26 @@ void updateTurning(){
 }
 
 //UNCERTAIN, DO TESTING FIRST
-//Note: if system_mode = 3 (near edge), this will override updateTurning(). If system_mode != 3, this will be overwritten by updateTurning
-void turnDirection(int td_direction, int td_degrees){
-  int td_turnTime = 0;  //find how long I should turn to get desired direction
+//Test to make sure directions are accurate. motor 12 should be 
+void updateMotorStates(){
+  if (motor12Speed < 0){
+    digitalWrite(input1_pin, HIGH);
+    digitalWrite(input2_pin, LOW);
+  }
+  else{
+    digitalWrite(input1_pin, LOW);
+    digitalWrite(input2_pin, HIGH);
+  }
+  analogWrite(enable12_pin, motor12Speed);
+  if (motor34Speed < 0){
+    digitalWrite(input3_pin, HIGH);
+    digitalWrite(input4_pin, LOW);
+  }
+  else{
+    digitalWrite(input3_pin, LOW);
+    digitalWrite(input4_pin, HIGH);
+  }
+  analogWrite(enable34_pin, motor34Speed);
 }
 
 //UNFINISHED, wait until motor control is implemented
