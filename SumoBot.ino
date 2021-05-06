@@ -19,7 +19,10 @@ int ldr2_state=0;
 //System mode
 int systemMode = 0; //0 for idle, 1 for search, 2 for tracking, 3 for facing, 4 for near edge
 //Motor variables
-int turnState = 0;  //-2 for fast CCW, -1 for normal CCW, 0 for straight, 1 for normal CW, 2 for fast CW
+int defaultSpeed = 255;
+int motor1Speed = 255;
+int motor2Speed = 255;
+//add turn stuff here
 long turnFinishTime = -1; //-1 if not in use, positive time otherwise. In milliseconds.
 
 long uds1_cm=0;
