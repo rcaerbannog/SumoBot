@@ -16,6 +16,12 @@ int dip2_pin=A5;
 int ldr1_state=0;
 int ldr2_state=0;
 
+//System mode
+int systemMode = 0; //0 for idle, 1 for search, 2 for tracking, 3 for facing, 4 for near edge
+//Motor variables
+int turnState = 0;  //-2 for fast CCW, -1 for normal CCW, 0 for straight, 1 for normal CW, 2 for fast CW
+long turnFinishTime = -1; //-1 if not in use, positive time otherwise. In milliseconds.
+
 long uds1_cm=0;
 long uds2_cm=0;
 long uds3_cm=0;
@@ -89,4 +95,32 @@ void loop() {
 //ANTHONY
 
 //ALEXANDER
-  
+
+//Motor methods. 
+//UNCERTAIN, DO TESTING FIRST
+void updateTurning(){
+  //states: turn time has passed, turn time is ongoing, turn time is not in use
+}
+
+//UNCERTAIN, DO TESTING FIRST
+//Note: if system_mode = 3 (near edge), this will override updateTurning(). If system_mode != 3, this will be overwritten by updateTurning
+void turnDirection(int td_direction, int td_degrees){
+  int td_turnTime = 0;  //find how long I should turn to get desired direction
+}
+
+//UNFINISHED, wait until motor control is implemented
+void initialTurning(){
+  int dip1_state = analogRead(dip1_pin);
+  int dip2_state = analogRead(dip2_pin);
+  if (dip1_state < 500 && dip2_state > 500){
+    //send commands to motor to turn 90 degrees CCW (left)
+    
+  }
+  else if (dip1_state > 500 && dip2_state < 500){
+    //send commands to motor to turn 180 degrees
+  }
+  else if (dip1_state > 500 && dip2_state > 500){
+    //send commands to motor to turn 90 degrees CW (right)
+  }
+  //Otherwise, dip1_state < 500 && dip2_state < 500, in which case do nothing (turn 0 degrees)
+}
