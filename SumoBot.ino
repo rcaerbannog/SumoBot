@@ -12,21 +12,21 @@ int uds_left_pin = 7;
 int uds_right_pin = A2;
 int uds_center_pin = A3;
 LiquidCrystal lcd(8, 9, 10, 11, 12, 13);
-int ldr1_pin = A4;
-int ldr2_pin = A5;
+int ldrLeft_pin = A4;
+int ldrRight_pin = A5;
 int dip1_pin = A0;
 int dip2_pin = A1;
 
 //Voltage reading for LDRs (drop across second resistor)
-int ldr1_state = 0, ldr2_state = 0;
+int ldrLeft_state = 0, ldrRight_state = 0;
 //Distance readings from UDSs
 long udsLeft_cm = 0, udsRight_cm = 0, udsCenter_cm = 0;
 const int MAX_DIST = 300;
 
 //System mode
 const int OFF = 0, SEARCH = 1, TRACK = 2, ATTACK = 3, NEAR_EDGE = 4;
-int systemMode = 0; //0 for idle, 1 for search, 2 for tracking, 3 for facing, 4 for near edge
-int previousSystemMode = 0;
+int systemMode = OFF; //0 for idle, 1 for search, 2 for tracking, 3 for facing, 4 for near edge
+int previousSystemMode = OFF;
 //Motor variables
 int defaultSpeed = 255;
 //Adjust these for turning
@@ -35,7 +35,7 @@ long turnFinishTime = -1; //-1 if not in use, positive time otherwise. In millis
 
 
 void setup() {
-  lcd.begin(16,2);
+  lcd.begin(16, 2);
   
   pinMode(on_off_pin, INPUT);
   pinMode(input1_pin, OUTPUT);
@@ -44,43 +44,33 @@ void setup() {
   pinMode(input4_pin, OUTPUT);
   pinMode(enable12_pin, OUTPUT);
   pinMode(enable34_pin, OUTPUT);
-  pinMode(ldr1_pin, INPUT);
-  pinMode(ldr2_pin, INPUT);
+  pinMode(ldrLeft_pin, INPUT);
+  pinMode(ldrRight_pin, INPUT);
   pinMode(dip1_pin, INPUT);
   pinMode(dip2_pin, INPUT);
   
-  //ANTHONY
-}
-
-long readUltrasonicDistance(int triggerPin, int echoPin)
-{
-  pinMode(triggerPin, OUTPUT);  // Clear the trigger
-  digitalWrite(triggerPin, LOW);
-  delayMicroseconds(2);
-  // Sets the trigger pin to HIGH state for 10 microseconds
-  digitalWrite(triggerPin, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(triggerPin, LOW);
-  pinMode(echoPin, INPUT);
-  // Reads the echo pin, and returns the sound wave travel time in microseconds
-  return pulseIn(echoPin, HIGH);
+  digitalWrite(enable12_pin, HIGH);
+  digitalWrite(enable34_pin, HIGH);
 }
 
 void loop() {
   //On/Off switch
   if (digitalRead(on_off_pin) == LOW){
 	  systemMode == OFF;
-	  analogWrite(enable12_pin, 0);
-	  analogWrite(enable34_pin, 0);
+	  defaultSpeed = 0;
+	  motorLeftSpeed = 0;
+	  motorRightSpeed = 0;
+	  updateMotorStates();
 	  return;	//skips to next run of loop()
   }
   if (previousSystemMode == OFF && digitalRead(on_off_pin) == HIGH){
+	  systemMode == SEARCH;
 	  initialTurning();
   }
   
   //Update LDRs
-  ldr1_state = analogRead(ldr1_pin);
-  ldr2_state = analogRead(ldr2_pin);
+  ldrLeft_state = analogRead(ldrLeft_pin);
+  ldrRight_state = analogRead(ldrRight_pin);
   //Update LCDs
   udsLeft_cm = updateUDS(uds_left_pin)/58.2377;
   udsRight_cm = updateUDS(uds_right_pin)/58.2377;
@@ -89,8 +79,35 @@ void loop() {
   updateLCD();
   
   //NEAR_EDGE mode will not be deactivated until escape maneuver has been performed. Revert to search.
-  if (systemMode == NEAR_EDGE || ldr1_state < 700 || ldr2_state < 700){
+  if (ldrLeft_state < 700 || ldrRight_state < 700){
 	  systemMode == NEAR_EDGE;
+	  //Hard stop: high impedence by setting enable12_pin and enable34_pin to 0 duty cycle
+	  motorLeftSpeed = 0;
+	  motorRightSpeed = 0;
+	  updateMotorStates();
+	  delay(200);
+	  //Corrective turn
+	  if (ldrLeft_state < 700){	//Turn CW (right) 135 degrees
+		motorLeftSpeed = 100;
+		motorRightSpeed = -100;
+		turnFinishTime = millis() + 1500;
+	  }
+	  else if (ldrRight_state < 700){	//Turn CCW (left) 135 degrees
+		motorLeftSpeed = -100;
+		motorRightSpeed = 100;
+		turnFinishTime = millis() + 1500;
+	  }
+	  updateMotorStates();
+	  delay(turnFinishTime - millis());
+	  //Travel forwards for 1 second to get away from edge
+	  motorLeftSpeed = 200;
+	  motorRightSpeed = 200;
+	  turnFinishTime = millis() + 1000;
+	  updateMotorStates();
+	  delay(turnFinishTime - millis());
+	  //Reset
+	  turnFinishTime = -1;
+	  systemMode = SEARCH;
   }
   //In TinkerCAD, if object is not in range, returned distance is 335, not 0. Normally, timeout on pulseIn would give 0.
   //Parallax Ping))) (#28015) data sheet: https://www.digikey.com/htmldatasheets/production/1253021/0/0/1/28015.html 
@@ -128,7 +145,7 @@ void loop() {
 	  motorRightSpeed = -100;
   }
   
-  //Near-edge escape maneuver
+  //Update speeds and direction of each motor
   updateMotorStates();
   
 }
@@ -140,9 +157,9 @@ void updateLCD(){
   lcd.setCursor(0,1);
   lcd.print("                ");
   lcd.setCursor(8, 0);
-  lcd.print(ldr1_state);
+  lcd.print(ldrLeft_state);
   lcd.setCursor(8, 1);
-  lcd.print(ldr2_state);
+  lcd.print(ldrRight_state);
   lcd.setCursor(0,1);
   lcd.print(uds1_cm);
   lcd.setCursor(4,1);
@@ -165,13 +182,15 @@ long updateUDS(int pin){
 }
 
 //Motor methods. 
-//UNCERTAIN, DO TESTING FIRST
+
+/* NOT IMPLEMENTED
+//Sets the required motor speeds and turn time required to complete a fixed turn
 void initiateTurn(int turnDegrees, int turnSpeed){
   //states: turn time has passed, turn time is ongoing, turn time is not in use
 }
+*/
 
-//UNCERTAIN, DO TESTING FIRST
-//Test to make sure directions are accurate. motor 12 should be 
+//Test to make sure directions are accurate.
 void updateMotorStates(){
   //Right motor
   if (motor12Speed < 0){
@@ -222,8 +241,7 @@ void initialTurning(){
 	motorRightSpeed = defaultSpeed - 100;
 	turnFinishTime = millis() + 1000;
   }
-  while (millis() < turnFinishTime){
-	updateMotorStates();
-	delay(50);
-  }
+  updateMotorStates();
+  delay(turnFinishTime-millis());
+  turnFinishTime = -1;
 }
