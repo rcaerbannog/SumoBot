@@ -196,7 +196,7 @@ long updateUDS(int pin){
 	delayMicroseconds(10);
 	digitalWrite(pin, LOW);
 	pinMode(pin, INPUT);
-	return pulseIn(pin, HIGH, 20000);
+	return pulseIn(pin, HIGH, 30000);
 }
 
 //Motor methods. 
@@ -269,7 +269,6 @@ void initialTurning(){
       	lcd.print("270");
 	}
 	updateMotorStates();
-  	updateLCD();
 	delay(turnFinishTime-millis());
 	turnFinishTime = -1;
 }
