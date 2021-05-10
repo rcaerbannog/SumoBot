@@ -60,6 +60,7 @@ void loop() {
 	//On/Off switch
 	if (digitalRead(on_off_pin) == LOW){
 		systemMode = OFF;
+      	previousSystemMode = systemMode;
 		defaultSpeed = 0;
 		motorLeftSpeed = 0;
 		motorRightSpeed = 0;
@@ -268,6 +269,7 @@ void initialTurning(){
       	lcd.print("270");
 	}
 	updateMotorStates();
+  	updateLCD();
 	delay(turnFinishTime-millis());
 	turnFinishTime = -1;
 }
