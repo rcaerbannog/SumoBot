@@ -104,7 +104,7 @@ void loop() {
 		//Travel forwards for 1 second to get away from edge
 		motorLeftSpeed = 200;
 		motorRightSpeed = 200;
-		turnFinishTime = millis() + 1000;
+		turnFinishTime = millis() + 1500;
 		updateMotorStates();
 		delay(turnFinishTime - millis());
 		//Reset
@@ -143,8 +143,8 @@ void loop() {
 	else{
 		systemMode = SEARCH;	//Rotate continuously CW
 		defaultSpeed = 0;
-		motorLeftSpeed = 100;
-		motorRightSpeed = -100;
+		motorLeftSpeed = 80;
+		motorRightSpeed = -80;
 	}
 
 	//Update speeds and direction of each motor
@@ -219,7 +219,7 @@ void updateMotorStates(){
 		digitalWrite(input1_pin, HIGH);
 		digitalWrite(input2_pin, LOW);
 	}
-	analogWrite(enable12_pin, motorRightSpeed);
+	analogWrite(enable12_pin, abs(motorRightSpeed));
 	//Left motor
 	if (motorLeftSpeed < 0){
 		digitalWrite(input3_pin, LOW);
@@ -229,10 +229,10 @@ void updateMotorStates(){
 		digitalWrite(input3_pin, HIGH);
 		digitalWrite(input4_pin, LOW);
 	}
-	analogWrite(enable34_pin, motorLeftSpeed);
+	analogWrite(enable34_pin, abs(motorLeftSpeed));
   	if (millis() >= updateLCDTime){
+      	updateLCDTime = millis() + 100;
   		updateLCD();
-    	updateLCDTime = millis() + 100;
   	}
 }
 
@@ -249,22 +249,22 @@ void initialTurning(){
 	}
 	else if (dip1_state < 500 && dip2_state > 500){
 		//send commands to motor to turn 90 degrees CW (right)
-		motorLeftSpeed = defaultSpeed - 100;
-		motorRightSpeed = defaultSpeed + 100;
+		motorLeftSpeed = defaultSpeed + 100;
+		motorRightSpeed = defaultSpeed - 100;
 		turnFinishTime = millis() + 1000;
       	lcd.print("090");
 	}
 	else if (dip1_state > 500 && dip2_state < 500){
 		//send commands to motor to turn 180 degrees CW (right)
-		motorLeftSpeed = defaultSpeed - 100;
-		motorRightSpeed = defaultSpeed + 100;
+		motorLeftSpeed = defaultSpeed + 100;
+		motorRightSpeed = defaultSpeed - 100;
 		turnFinishTime = millis() + 2000;
       	lcd.print("180");
 	}
 	else if (dip1_state > 500 && dip2_state > 500){
 		//send commands to motor to turn 90 degrees CCW (left)
-		motorLeftSpeed = defaultSpeed + 100;
-		motorRightSpeed = defaultSpeed - 100;
+		motorLeftSpeed = defaultSpeed - 100;
+		motorRightSpeed = defaultSpeed + 100;
 		turnFinishTime = millis() + 1000;
       	lcd.print("270");
 	}
