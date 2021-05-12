@@ -101,7 +101,7 @@ void loop() {
 		}
 		updateMotorStates();
 		delay(turnFinishTime - millis());
-		//Travel forwards for 1 second to get away from edge
+		//Travel forwards for 1.5 seconds to get away from edge
 		motorLeftSpeed = 200;
 		motorRightSpeed = 200;
 		turnFinishTime = millis() + 1500;
