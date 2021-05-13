@@ -112,7 +112,7 @@ void loop() {
 			motorRightSpeed = -100;
 			turnFinishTime = millis() + 1500;
 		}
-		else if (ldrRight_state < 550){	//Turn CCW (left) 135 degrees
+		else {	//Turn CCW (left) 135 degrees
 			motorLeftSpeed = -100;
 			motorRightSpeed = 100;
 			turnFinishTime = millis() + 1500;
