@@ -1,4 +1,13 @@
+//Alexander Li
+//AL TER4M SumoBot
+//Version: 2021-05-13
+//Course: TEJ4M1
+//Teacher: Mr. Wong
+//Function: sumo-wrestling bot that aims to push an opponent bot out of a ring
+
 #include <LiquidCrystal.h>
+
+//Pin variables
 
 //Pin variables
 int on_off_pin = 0;
@@ -19,18 +28,22 @@ int dip2_pin = A1;
 
 //Voltage reading for LDRs (drop across second resistor)
 int ldrLeft_state = 0, ldrRight_state = 0;
+
 //Distance readings from UDSs
 long udsLeft_cm = 0, udsRight_cm = 0, udsCenter_cm = 0;
 const int MAX_DIST = 300;
 
 //LCD
 long updateLCDTime = 0;
+
 //System mode
 const int OFF = 0, INITIAL = 1, SEARCH = 2, TRACK = 3, NEAR_EDGE = 4;
 int systemMode = OFF; //0 for idle, 1 for search, 2 for tracking, 3 for facing, 4 for near edge
 int previousSystemMode = OFF;
+
 //Motor variables
 int defaultSpeed = 0;
+
 //Adjust these for turning
 int motorLeftSpeed = 0, motorRightSpeed = 0;	//Speeds from -255 to +255
 long turnFinishTime = -1; //-1 if not in use, positive time otherwise. In milliseconds.
@@ -39,6 +52,7 @@ long turnFinishTime = -1; //-1 if not in use, positive time otherwise. In millis
 void setup() {
   	lcd.begin(16, 2);
 	
+  	//Pin modes
 	pinMode(on_off_pin, INPUT);
 	pinMode(input1_pin, OUTPUT);
 	pinMode(input2_pin, OUTPUT);
@@ -50,9 +64,11 @@ void setup() {
 	pinMode(ldrRight_pin, INPUT);
 	pinMode(dip1_pin, INPUT);
 	pinMode(dip2_pin, INPUT);
-
+	
+  	//Write enable pins to L293D to high. (Power controlled by duty cycle)
 	digitalWrite(enable12_pin, HIGH);
 	digitalWrite(enable34_pin, HIGH);
+  
   	Serial.end();
 }
 
@@ -67,7 +83,7 @@ void loop() {
 		updateMotorStates();
 		return;	//skips to next run of loop()
 	} 
-	if (previousSystemMode == OFF && digitalRead(on_off_pin) == HIGH){
+	if (previousSystemMode == OFF && digitalRead(on_off_pin) == HIGH){	//Robot turned on by switch 4
       	systemMode = INITIAL;
 		initialTurning();
 	}
@@ -80,7 +96,8 @@ void loop() {
 	udsRight_cm = updateUDS(uds_right_pin)/58.2377;
 	udsCenter_cm = updateUDS(uds_center_pin)/58.2377;
 
-	//NEAR_EDGE mode will not be deactivated until escape maneuver has been performed. Revert to search.
+  	//MODE: NEAR EDGE
+	//NEAR_EDGE will not be deactivated until escape maneuver has been performed. Revert to search.
 	if (ldrLeft_state < 550 || ldrRight_state < 550){
 		systemMode = NEAR_EDGE;
 		//Hard stop: high impedence by setting enable12_pin and enable34_pin to 0 duty cycle
@@ -88,6 +105,7 @@ void loop() {
 		motorRightSpeed = 0;
 		updateMotorStates();
 		delay(200);
+      
 		//Corrective turn
 		if (ldrLeft_state < 550){	//Turn CW (right) 135 degrees
 			motorLeftSpeed = 100;
@@ -99,18 +117,20 @@ void loop() {
 			motorRightSpeed = 100;
 			turnFinishTime = millis() + 1500;
 		}
+      
 		updateMotorStates();
-		delay(turnFinishTime - millis());
+		delay(turnFinishTime - millis()); //Maintain current motor speeds for duration of turn
 		//Travel forwards for 1.5 seconds to get away from edge
 		motorLeftSpeed = 200;
 		motorRightSpeed = 200;
 		turnFinishTime = millis() + 1500;
 		updateMotorStates();
 		delay(turnFinishTime - millis());
-		//Reset
+		//Reset system mode
 		turnFinishTime = -1;
 		systemMode = SEARCH;
 	}
+  	//MODE: FACING (TRACK)
 	//In TinkerCAD, if object is not in range, returned distance is 335, not 0. Normally, timeout on pulseIn would give 0.
 	//Parallax Ping))) (#28015) data sheet: https://www.digikey.com/htmldatasheets/production/1253021/0/0/1/28015.html 
 	//Min accurate range is 2 cm. By setting UDS back by at least 2cm from edge of car, opposing bot cannot get under sensor range
@@ -118,30 +138,36 @@ void loop() {
 	else if (udsLeft_cm < 300 || udsCenter_cm < 300 || udsRight_cm < 300){
 		systemMode = TRACK;
 		defaultSpeed = 255;
-		//only in center or detected by all 3
+		//Opponent sumo bot detected in(F) or (L, F, R) sensors: full forwards
 		if (udsCenter_cm < 300 && ((udsLeft_cm < 300 && udsRight_cm < 300) || (udsLeft_cm >= 300 && udsRight_cm >= 300)) ){
 			motorLeftSpeed = defaultSpeed;
 			motorRightSpeed = defaultSpeed;
 		}
-		else if (udsLeft_cm < 300 && udsCenter_cm < 300){	//Turn soft left
+      	//Detected in (L, F): turn slight left
+		else if (udsLeft_cm < 300 && udsCenter_cm < 300){
 			motorLeftSpeed = defaultSpeed - 70;
 			motorRightSpeed = defaultSpeed;
 		}
-		else if (udsRight_cm < 300 && udsCenter_cm < 300){	//Turn soft right
+      	//Detected in (R, F): turn slight right
+		else if (udsRight_cm < 300 && udsCenter_cm < 300){
 			motorLeftSpeed = defaultSpeed;
 			motorRightSpeed = defaultSpeed - 70;
 		}
-		else if (udsLeft_cm < 300){	//Turn hard left
+      	//Detected in (L): turn hard left
+		else if (udsLeft_cm < 300){
 			motorLeftSpeed = defaultSpeed - 150;
 			motorRightSpeed = defaultSpeed;
 		}
-		else if (udsRight_cm < 300){	//Turn hard right
+      	//Detected in (R): turn hard right
+		else if (udsRight_cm < 300){
 			motorLeftSpeed = defaultSpeed;
 			motorRightSpeed = defaultSpeed - 150;
 		}
 	}
+  	//MODE: SEARCH
+  	//Continuously rotate CW at slower speed to scan for opponent robot
 	else{
-		systemMode = SEARCH;	//Rotate continuously CW
+		systemMode = SEARCH;
 		defaultSpeed = 0;
 		motorLeftSpeed = 80;
 		motorRightSpeed = -80;
@@ -158,18 +184,20 @@ void updateLCD(){
 	lcd.print("                ");
 	lcd.setCursor(0,1);
 	lcd.print("             ");
+  	//Print LDR analog readings in middle
 	lcd.setCursor(8, 0);
 	lcd.print(ldrLeft_state);
 	lcd.setCursor(8, 1);
 	lcd.print(ldrRight_state);
+  	//Print distance sensor distance readings in left
 	lcd.setCursor(0,1);
 	lcd.print(udsLeft_cm);
 	lcd.setCursor(4,1);
 	lcd.print(udsRight_cm);
 	lcd.setCursor(2,0);
 	lcd.print(udsCenter_cm);
-	//Columns 13,14,15 are usable. OFF, SCH, TRK, ATK, EDG
   	lcd.setCursor(13, 0);
+  	//Print system mode in top-right
     if (systemMode == OFF){
       	lcd.print("OFF");
     }
@@ -187,7 +215,7 @@ void updateLCD(){
     }
 }
 
-//Update UDSs
+//Pulse the ultrasonic distance sensor to get a return time reading to convert to distance
 long updateUDS(int pin){
 	pinMode(pin, OUTPUT);
 	digitalWrite(pin, LOW);
@@ -205,12 +233,15 @@ long updateUDS(int pin){
 //Sets the required motor speeds and turn time required to complete a fixed turn
 void initiateTurn(int turnDegrees, int turnSpeed){
   //states: turn time has passed, turn time is ongoing, turn time is not in use
+  //Add method to quickly flash maximum power: analogWrite(255) to both motors to overcome static friction
 }
 */
 
-//positive rpm on motors indicates wheel spinning forwards
+//Update inputs to the L293D motor control chip to set motor speeds and directions
+//Using analogWrite to control the duty cycle of the signal to the Enable pins on the L293D controls effective power to motors
+//by quickly enabling/disabling the chip for a certain fraction of each cycle
 void updateMotorStates(){
-	//Right motor
+	//Right motor direction and speed
 	if (motorRightSpeed < 0){
 		digitalWrite(input1_pin, LOW);
 		digitalWrite(input2_pin, HIGH);
@@ -220,7 +251,7 @@ void updateMotorStates(){
 		digitalWrite(input2_pin, LOW);
 	}
 	analogWrite(enable12_pin, abs(motorRightSpeed));
-	//Left motor
+	//Left motor direction and speed
 	if (motorLeftSpeed < 0){
 		digitalWrite(input3_pin, LOW);
 		digitalWrite(input4_pin, HIGH);
@@ -230,19 +261,24 @@ void updateMotorStates(){
 		digitalWrite(input4_pin, LOW);
 	}
 	analogWrite(enable34_pin, abs(motorLeftSpeed));
+  	//Update the LCD, no more frequently than once every 1/10th of a second to prevent excessie flashing
   	if (millis() >= updateLCDTime){
       	updateLCDTime = millis() + 100;
   		updateLCD();
   	}
 }
 
-//Note: there is no use in trying to predict required turn times without testing
 //Would need mass of car and power curve of motors to make theoretical prediction, or testing
+//Note: there is no use in trying to predict required turn times without physical testing
+//since I don't know the specs of the wheels or motor, or the weight of the robot
 void initialTurning(){
 	defaultSpeed = 0;	//If you don't want to turn on the spot for whatever reason, change this
 	int dip1_state = analogRead(dip1_pin);
 	int dip2_state = analogRead(dip2_pin);
   	lcd.setCursor(13, 1);
+  
+  	//Conditional statement to specify initial turning angle based on DIP switches 1 and 2
+  	//(00, 0), (01, 90), (10, 180), (11, 270). Angles in CW direction.
 	if (dip1_state < 500 && dip2_state < 500){
       	lcd.print("000");
 		return;	//No turning
@@ -268,7 +304,8 @@ void initialTurning(){
 		turnFinishTime = millis() + 1000;
       	lcd.print("270");
 	}
+  	updateLCD();	//If this isn't done, LCD won't show correct system mode
 	updateMotorStates();
-	delay(turnFinishTime-millis());
+	delay(turnFinishTime-millis());	//Maintain current motor speeds for duration of turn
 	turnFinishTime = -1;
 }
