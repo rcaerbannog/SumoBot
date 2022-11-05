@@ -12,5 +12,7 @@ In this project, I:
 * learned how to use an L293D half H-bridge IC to control the speed of two motors
 
 The circuit is available here. https://www.tinkercad.com/things/3VDqxxp8A2C
+
 The testing documentation is available in the Submission Document pdf. This describes the expected functionality of each component, and an exact order to test the functioning of the different components, and the correct behaviour of the sumobot when different inputs are read (e.g. LDR detects decrease in light from ring edge, distance sensors detect opponent robot in one of the five zones). 
+
 I also used SketchUp to create a physical model of the SumoBot, of which two images are included.
